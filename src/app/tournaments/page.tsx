@@ -40,24 +40,35 @@ export default function TournamentsPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold mb-6">🏆 大会一覧</h1>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full text-left min-w-[600px]">
+      <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">🏆 大会一覧</h1>
+      <div className="bg-white rounded-lg shadow">
+        <table className="w-full text-left text-xs md:text-sm">
           <thead className="bg-gray-100">
-            <tr><th className="p-4">日付</th><th className="p-4">場所</th><th className="p-4">大会名</th><th className="p-4">結果</th><th className="p-4 text-center whitespace-nowrap">操作</th></tr>
+            <tr>
+              <th className="p-2 md:p-4">日付</th>
+              <th className="hidden md:table-cell p-4">場所</th>
+              <th className="p-2 md:p-4">大会名</th>
+              <th className="p-2 md:p-4">結果</th>
+              <th className="p-2 md:p-4 text-center">操作</th>
+            </tr>
           </thead>
           <tbody>
             {tournaments.map(t => (
               <tr key={t.id} className="border-b hover:bg-gray-50">
-                <td className="p-4">{t.date}</td>
-                <td className="p-4">{getPlaceName(t.places_id)}</td>
-                <td className="p-4">
-                  <button onClick={() => { setActiveTournament(t); setIsHistoryOpen(true); }} className="text-blue-600 font-bold hover:underline text-left">{t.name}</button>
+                <td className="p-2 md:p-4 whitespace-nowrap">{t.date}</td>
+                <td className="hidden md:table-cell p-4">{getPlaceName(t.places_id)}</td>
+                <td className="p-2 md:p-4">
+                  <button onClick={() => { setActiveTournament(t); setIsHistoryOpen(true); }} className="text-blue-600 font-bold hover:underline text-left break-words max-w-[120px] md:max-w-none">
+                    {t.name}
+                  </button>
+                  <div className="text-[10px] text-gray-500 md:hidden mt-0.5">{getPlaceName(t.places_id)}</div>
                 </td>
-                <td className="p-4">{t.result}</td>
-                <td className="p-4 text-center space-x-2 whitespace-nowrap">
-                  <button onClick={() => { setForm(t); setIsModalOpen(true); }} className="text-sm bg-gray-200 px-3 py-1 rounded">編集</button>
-                  <button onClick={async () => { if(confirm('削除しますか？')) { await deleteAPI('tournaments', t.id!); loadData(); } }} className="text-sm bg-red-100 text-red-600 px-3 py-1 rounded">削除</button>
+                <td className="p-2 md:p-4 break-words">{t.result}</td>
+                <td className="p-2 md:p-4 text-center">
+                  <div className="flex flex-col sm:flex-row gap-1 md:gap-2 justify-center">
+                    <button onClick={() => { setForm(t); setIsModalOpen(true); }} className="text-[10px] md:text-sm bg-gray-200 px-2 py-1 md:px-3 rounded w-full sm:w-auto">編集</button>
+                    <button onClick={async () => { if(confirm('削除しますか？')) { await deleteAPI('tournaments', t.id!); loadData(); } }} className="text-[10px] md:text-sm bg-red-100 text-red-600 px-2 py-1 md:px-3 rounded w-full sm:w-auto">削除</button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -68,7 +79,7 @@ export default function TournamentsPage() {
       <Fab onClick={() => { setForm({ places_id: '', name: '', date: '', result: '' }); setIsModalOpen(true); }} />
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={form.id ? "大会の編集" : "大会の登録"}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm md:text-base">
           <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} required className="border p-2 rounded" />
           <select value={form.places_id} onChange={e => setForm({...form, places_id: e.target.value})} required className="border p-2 rounded">
             <option value="">場所を選択</option>
@@ -83,19 +94,19 @@ export default function TournamentsPage() {
       <Modal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} title={`${activeTournament?.name} の戦績`}>
         <ul className="space-y-2">
           {records.filter(r => r.tournaments_id == activeTournament?.id).map(r => (
-            <li key={r.id} className="p-3 bg-gray-50 border rounded flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-              <div>
-                <span className="font-bold">{getOpponentName(r.opponents_id)}</span>
-                <span className="text-sm text-gray-500 ml-2">({r.round})</span>
+            <li key={r.id} className="p-2 md:p-3 bg-gray-50 border rounded flex flex-row justify-between items-center gap-1.5 md:gap-3 text-xs md:text-sm">
+              <div className="flex-1 min-w-0 flex items-center gap-1 md:gap-2">
+                <span className="font-bold truncate">{getOpponentName(r.opponents_id)}</span>
+                <span className="text-[10px] md:text-xs text-gray-500 shrink-0">({r.round})</span>
               </div>
-              <div className="flex items-center gap-3">
-                {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded hover:bg-green-200 transition">動画</a>}
-                <span className="font-mono">{getScoreText(r)}</span>
-                <span className={`font-bold w-12 text-center ${r.result === 'WIN' ? 'text-red-500' : 'text-blue-500'}`}>{r.result}</span>
+              <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
+                {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded hover:bg-green-200">動画</a>}
+                <span className="font-mono text-xs md:text-base">{getScoreText(r)}</span>
+                <span className={`font-bold w-8 md:w-12 text-center text-[10px] md:text-sm ${r.result === 'WIN' ? 'text-red-500' : 'text-blue-500'}`}>{r.result}</span>
               </div>
             </li>
           ))}
-          {records.filter(r => r.tournaments_id == activeTournament?.id).length === 0 && <p className="text-gray-500">戦績がありません</p>}
+          {records.filter(r => r.tournaments_id == activeTournament?.id).length === 0 && <p className="text-gray-500 text-sm">戦績がありません</p>}
         </ul>
       </Modal>
     </>

@@ -51,24 +51,31 @@ export default function OpponentsPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold mb-6">👤 対戦相手一覧</h1>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full text-left min-w-[600px]">
+      <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">👤 対戦相手一覧</h1>
+      <div className="bg-white rounded-lg shadow">
+        <table className="w-full text-left text-xs md:text-sm">
           <thead className="bg-gray-100">
-            <tr><th className="p-4">名前</th><th className="p-4">対戦成績</th><th className="p-4">特徴/メモ</th><th className="p-4 text-center whitespace-nowrap">操作</th></tr>
+            <tr>
+              <th className="p-2 md:p-4">名前</th>
+              <th className="p-2 md:p-4">成績</th>
+              <th className="hidden md:table-cell p-4">特徴/メモ</th>
+              <th className="p-2 md:p-4 text-center">操作</th>
+            </tr>
           </thead>
           <tbody>
             {opponents.map(o => (
               <tr key={o.id} className="border-b hover:bg-gray-50">
-                <td className="p-4">
-                  <button onClick={() => { setActiveOpponent(o); setIsHistoryOpen(true); }} className="text-blue-600 font-bold hover:underline text-left">{o.name}</button>
-                  {o.memo && <span className="text-xs text-gray-400 ml-2 block md:inline">({o.memo})</span>}
+                <td className="p-2 md:p-4">
+                  <button onClick={() => { setActiveOpponent(o); setIsHistoryOpen(true); }} className="text-blue-600 font-bold hover:underline text-left break-words max-w-[100px] md:max-w-none">{o.name}</button>
+                  {o.memo && <span className="text-[10px] md:text-xs text-gray-500 block md:inline md:ml-2">({o.memo})</span>}
                 </td>
-                <td className="p-4 font-mono">{getRecordSummary(o.id)}</td>
-                <td className="p-4 text-sm text-gray-600">{o.spec}</td>
-                <td className="p-4 text-center space-x-2 whitespace-nowrap">
-                  <button onClick={() => { setForm(o); setIsModalOpen(true); }} className="text-sm bg-gray-200 px-3 py-1 rounded">編集</button>
-                  <button onClick={async () => { if(confirm('削除しますか？')) { await deleteAPI('opponents', o.id!); loadData(); } }} className="text-sm bg-red-100 text-red-600 px-3 py-1 rounded">削除</button>
+                <td className="p-2 md:p-4 font-mono break-words">{getRecordSummary(o.id)}</td>
+                <td className="hidden md:table-cell p-4 text-gray-600 text-sm break-words">{o.spec}</td>
+                <td className="p-2 md:p-4 text-center">
+                  <div className="flex flex-col sm:flex-row gap-1 md:gap-2 justify-center">
+                    <button onClick={() => { setForm(o); setIsModalOpen(true); }} className="text-[10px] md:text-sm bg-gray-200 px-2 py-1 md:px-3 rounded w-full sm:w-auto">編集</button>
+                    <button onClick={async () => { if(confirm('削除しますか？')) { await deleteAPI('opponents', o.id!); loadData(); } }} className="text-[10px] md:text-sm bg-red-100 text-red-600 px-2 py-1 md:px-3 rounded w-full sm:w-auto">削除</button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -79,7 +86,7 @@ export default function OpponentsPage() {
       <Fab onClick={() => { setForm({ name: '', memo: '', spec: '' }); setIsModalOpen(true); }} />
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={form.id ? "相手の編集" : "相手の登録"}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-sm md:text-base">
           <input type="text" placeholder="名前" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className="border p-2 rounded" />
           <input type="text" placeholder="識別メモ (同姓同名対策)" value={form.memo} onChange={e => setForm({...form, memo: e.target.value})} className="border p-2 rounded" />
           <textarea placeholder="特徴やプレースタイル" value={form.spec} onChange={e => setForm({...form, spec: e.target.value})} className="border p-2 rounded h-24" />
@@ -90,19 +97,19 @@ export default function OpponentsPage() {
       <Modal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} title={`${activeOpponent?.name} との戦績`}>
         <ul className="space-y-2">
           {records.filter(r => r.opponents_id == activeOpponent?.id).map(r => (
-            <li key={r.id} className="p-3 bg-gray-50 border rounded flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-              <div>
-                <span className="font-bold text-sm block md:inline">{formatTournament(r.tournaments_id)}</span>
-                <span className="text-sm text-gray-500 ml-0 md:ml-2">({r.round})</span>
+            <li key={r.id} className="p-2 md:p-3 bg-gray-50 border rounded flex flex-row justify-between items-center gap-1.5 md:gap-3 text-xs md:text-sm">
+              <div className="flex-1 min-w-0 flex items-center gap-1 md:gap-2">
+                <span className="font-bold truncate text-xs md:text-sm">{formatTournament(r.tournaments_id)}</span>
+                <span className="text-[10px] md:text-xs text-gray-500 shrink-0">({r.round})</span>
               </div>
-              <div className="flex items-center gap-3">
-                {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded hover:bg-green-200 transition">動画</a>}
-                <span className="font-mono">{getScoreText(r)}</span>
-                <span className={`font-bold w-12 text-center ${r.result === 'WIN' ? 'text-red-500' : 'text-blue-500'}`}>{r.result}</span>
+              <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
+                {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded hover:bg-green-200">動画</a>}
+                <span className="font-mono text-xs md:text-base">{getScoreText(r)}</span>
+                <span className={`font-bold w-8 md:w-12 text-center text-[10px] md:text-sm ${r.result === 'WIN' ? 'text-red-500' : 'text-blue-500'}`}>{r.result}</span>
               </div>
             </li>
           ))}
-          {records.filter(r => r.opponents_id == activeOpponent?.id).length === 0 && <p className="text-gray-500">戦績がありません</p>}
+          {records.filter(r => r.opponents_id == activeOpponent?.id).length === 0 && <p className="text-gray-500 text-sm">戦績がありません</p>}
         </ul>
       </Modal>
     </>

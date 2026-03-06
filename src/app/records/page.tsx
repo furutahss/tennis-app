@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchAPI, saveAPI, deleteAPI } from '@/lib/apiClient';
 import { RecordData, Tournament, Opponent, Place } from '@/types';
 import Fab from '@/components/Fab';
@@ -16,7 +16,6 @@ export default function RecordsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<RecordData>(initForm);
 
-  // 予測入力用のステート
   const [searchOp, setSearchOp] = useState('');
   const [showOpList, setShowOpList] = useState(false);
 
@@ -26,7 +25,6 @@ export default function RecordsPage() {
   };
   useEffect(() => { loadData(); }, []);
 
-  // フォームの相手IDが変わった時に、予測入力のテキストも同期する
   useEffect(() => {
     if (form.opponents_id) {
       setSearchOp(getName(opponents, form.opponents_id));
@@ -67,39 +65,53 @@ export default function RecordsPage() {
     return `${t.date} ${placeName} ${t.name}`;
   };
 
-  // 大会を日付の新しい順にソート
   const sortedTournaments = [...tournaments].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <>
-      <h1 className="text-2xl font-bold mb-6">🎾 戦績一覧</h1>
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="w-full text-left min-w-[800px]">
+      <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">🎾 戦績一覧</h1>
+      <div className="bg-white rounded-lg shadow">
+        <table className="w-full text-left text-xs md:text-sm">
           <thead className="bg-gray-100">
-            <tr><th className="p-4">大会/ラウンド</th><th className="p-4">対戦相手</th><th className="p-4 text-center">スコア</th><th className="p-4 text-center">結果</th><th className="p-4 text-center">操作</th></tr>
+            <tr>
+              <th className="p-2 md:p-4">大会/ラウンド</th>
+              <th className="p-2 md:p-4">相手</th>
+              <th className="p-2 md:p-4 text-center">スコア</th>
+              <th className="hidden sm:table-cell p-4 text-center">結果</th>
+              <th className="p-2 md:p-4 text-center">操作</th>
+            </tr>
           </thead>
           <tbody>
             {records.map(r => (
               <tr key={r.id} className="border-b hover:bg-gray-50">
-                <td className="p-4 font-medium">{formatTournament(r.tournaments_id)}<br/><span className="text-sm text-gray-500">{r.round}</span></td>
-                <td className="p-4">{getName(opponents, r.opponents_id)}</td>
-                <td className="p-4 text-center font-mono text-lg">
-                  <div className="flex justify-center items-center gap-2">
-                    <span className={r.is_ret_me ? 'text-red-500 text-sm' : ''}>{r.is_ret_me ? 'RET' : r.my_score}</span>
-                    <span>-</span>
-                    <span className={r.is_ret_op ? 'text-red-500 text-sm' : ''}>{r.is_ret_op ? 'RET' : r.op_score}</span>
-                  </div>
-                  {(r.my_tb_score || r.op_tb_score) ? <div className="text-xs text-gray-500">TB: {r.my_tb_score} - {r.op_tb_score}</div> : null}
+                <td className="p-2 md:p-4 font-medium max-w-[120px] md:max-w-none break-words">
+                  {formatTournament(r.tournaments_id)}<br/>
+                  <span className="text-[10px] md:text-sm text-gray-500">{r.round}</span>
                 </td>
-                <td className="p-4 text-center font-bold">
+                <td className="p-2 md:p-4 max-w-[80px] md:max-w-none break-words">{getName(opponents, r.opponents_id)}</td>
+                <td className="p-2 md:p-4 text-center font-mono text-sm md:text-lg">
+                  <div className="flex justify-center items-center gap-1 md:gap-2">
+                    <span className={r.is_ret_me ? 'text-red-500 text-[10px] md:text-sm' : ''}>{r.is_ret_me ? 'RET' : r.my_score}</span>
+                    <span>-</span>
+                    <span className={r.is_ret_op ? 'text-red-500 text-[10px] md:text-sm' : ''}>{r.is_ret_op ? 'RET' : r.op_score}</span>
+                  </div>
+                  {(r.my_tb_score || r.op_tb_score) ? <div className="text-[10px] md:text-xs text-gray-500">TB: {r.my_tb_score} - {r.op_tb_score}</div> : null}
+                  {/* スマホのみバッジ表示 */}
+                  <div className="mt-1 sm:hidden">
+                    {r.result === 'WIN' ? <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded text-[10px]">WIN</span> : <span className="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-[10px]">LOSE</span>}
+                  </div>
+                </td>
+                <td className="hidden sm:table-cell p-4 text-center font-bold">
                   {r.result === 'WIN' ? <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm">WIN</span> : <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm">LOSE</span>}
                 </td>
-                <td className="p-4 text-center space-x-2 whitespace-nowrap">
-                  {r.url && (
-                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-sm bg-green-100 text-green-600 px-3 py-1.5 rounded inline-block hover:bg-green-200 transition">動画</a>
-                  )}
-                  <button onClick={() => { setForm(r); setIsModalOpen(true); }} className="text-sm bg-gray-200 px-3 py-1 rounded">編集</button>
-                  <button onClick={async () => { if(confirm('削除しますか？')) { await deleteAPI('records', r.id!); loadData(); } }} className="text-sm bg-red-100 text-red-600 px-3 py-1 rounded">削除</button>
+                <td className="p-2 md:p-4 text-center">
+                  <div className="flex flex-col sm:flex-row gap-1 justify-center items-center">
+                    {r.url && (
+                      <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-sm bg-green-100 text-green-600 px-2 py-1 md:px-3 rounded w-full sm:w-auto text-center">動画</a>
+                    )}
+                    <button onClick={() => { setForm(r); setIsModalOpen(true); }} className="text-[10px] md:text-sm bg-gray-200 px-2 py-1 md:px-3 rounded w-full sm:w-auto">編集</button>
+                    <button onClick={async () => { if(confirm('削除しますか？')) { await deleteAPI('records', r.id!); loadData(); } }} className="text-[10px] md:text-sm bg-red-100 text-red-600 px-2 py-1 md:px-3 rounded w-full sm:w-auto">削除</button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -110,14 +122,13 @@ export default function RecordsPage() {
       <Fab onClick={() => { setForm(initForm); setIsModalOpen(true); }} />
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={form.id ? "戦績の編集" : "戦績の登録"}>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 md:gap-4 text-sm md:text-base">
           <select value={form.tournaments_id} onChange={e => setForm({...form, tournaments_id: e.target.value})} required className="border p-2 rounded bg-gray-50">
             <option value="">大会を選択</option>
             {sortedTournaments.map(t => <option key={t.id} value={t.id}>{formatTournament(t.id)}</option>)}
           </select>
           <input type="text" placeholder="ラウンド (例: 予選1回戦)" value={form.round} onChange={e => setForm({...form, round: e.target.value})} required className="border p-2 rounded" />
           
-          {/* 予測入力機能付きの対戦相手コンボボックス */}
           <div className="relative">
             <input
               type="text"
@@ -126,10 +137,10 @@ export default function RecordsPage() {
               onChange={e => {
                 setSearchOp(e.target.value);
                 setShowOpList(true);
-                setForm(prev => ({...prev, opponents_id: ''})); // 文字が変わったらIDをリセット
+                setForm(prev => ({...prev, opponents_id: ''}));
               }}
               onFocus={() => setShowOpList(true)}
-              onBlur={() => setTimeout(() => setShowOpList(false), 200)} // クリックできるように遅延
+              onBlur={() => setTimeout(() => setShowOpList(false), 200)}
               className="border p-2 rounded bg-gray-50 w-full"
               required
             />
@@ -155,24 +166,24 @@ export default function RecordsPage() {
             )}
           </div>
           
-          <div className="p-4 border rounded bg-gray-50 grid grid-cols-2 gap-4">
+          <div className="p-2 md:p-4 border rounded bg-gray-50 grid grid-cols-2 gap-2 md:gap-4">
             <div>
-              <label className="block text-sm font-bold mb-1 text-center">自分</label>
-              <input type="number" placeholder="スコア" value={form.my_score} onChange={e => setForm({...form, my_score: e.target.value})} disabled={form.is_ret_me} className="border p-2 rounded w-full mb-2" />
-              <input type="number" placeholder="TB" value={form.my_tb_score} onChange={e => setForm({...form, my_tb_score: e.target.value})} disabled={form.is_ret_me} className="border p-2 rounded w-full mb-2" />
-              <label className="flex items-center justify-center gap-1 text-sm text-red-600 font-bold"><input type="checkbox" checked={form.is_ret_me} onChange={e => setForm({...form, is_ret_me: e.target.checked})} /> リタイア</label>
+              <label className="block text-xs md:text-sm font-bold mb-1 text-center">自分</label>
+              <input type="number" placeholder="スコア" value={form.my_score} onChange={e => setForm({...form, my_score: e.target.value})} disabled={form.is_ret_me} className="border p-1.5 md:p-2 rounded w-full mb-2" />
+              <input type="number" placeholder="TB" value={form.my_tb_score} onChange={e => setForm({...form, my_tb_score: e.target.value})} disabled={form.is_ret_me} className="border p-1.5 md:p-2 rounded w-full mb-2" />
+              <label className="flex items-center justify-center gap-1 text-[10px] md:text-sm text-red-600 font-bold"><input type="checkbox" checked={form.is_ret_me} onChange={e => setForm({...form, is_ret_me: e.target.checked})} /> リタイア</label>
             </div>
             <div>
-              <label className="block text-sm font-bold mb-1 text-center">相手</label>
-              <input type="number" placeholder="スコア" value={form.op_score} onChange={e => setForm({...form, op_score: e.target.value})} disabled={form.is_ret_op} className="border p-2 rounded w-full mb-2" />
-              <input type="number" placeholder="TB" value={form.op_tb_score} onChange={e => setForm({...form, op_tb_score: e.target.value})} disabled={form.is_ret_op} className="border p-2 rounded w-full mb-2" />
-              <label className="flex items-center justify-center gap-1 text-sm text-red-600 font-bold"><input type="checkbox" checked={form.is_ret_op} onChange={e => setForm({...form, is_ret_op: e.target.checked})} /> リタイア</label>
+              <label className="block text-xs md:text-sm font-bold mb-1 text-center">相手</label>
+              <input type="number" placeholder="スコア" value={form.op_score} onChange={e => setForm({...form, op_score: e.target.value})} disabled={form.is_ret_op} className="border p-1.5 md:p-2 rounded w-full mb-2" />
+              <input type="number" placeholder="TB" value={form.op_tb_score} onChange={e => setForm({...form, op_tb_score: e.target.value})} disabled={form.is_ret_op} className="border p-1.5 md:p-2 rounded w-full mb-2" />
+              <label className="flex items-center justify-center gap-1 text-[10px] md:text-sm text-red-600 font-bold"><input type="checkbox" checked={form.is_ret_op} onChange={e => setForm({...form, is_ret_op: e.target.checked})} /> リタイア</label>
             </div>
           </div>
           
           <input type="url" placeholder="動画URL (任意)" value={form.url || ''} onChange={e => setForm({...form, url: e.target.value})} className="border p-2 rounded bg-gray-50" />
           
-          <button type="submit" className="bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700">保存</button>
+          <button type="submit" className="bg-blue-600 text-white p-2 md:p-3 rounded font-bold hover:bg-blue-700">保存</button>
         </form>
       </Modal>
     </>
