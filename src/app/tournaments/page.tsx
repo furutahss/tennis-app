@@ -15,6 +15,7 @@ export default function TournamentsPage() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
   const [form, setForm] = useState<Tournament>({ places_id: '', name: '', date: '', result: '' });
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   const loadData = async () => {
     const [t, p, r, o] = await Promise.all([fetchAPI('tournaments'), fetchAPI('places'), fetchAPI('records'), fetchAPI('opponents')]);
@@ -38,6 +39,13 @@ export default function TournamentsPage() {
     return `${myS} - ${opS} ${tb}`;
   };
 
+  // 日付でソート
+  const sortedTournaments = [...tournaments].sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+  });
+
   return (
     <>
       <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">🏆 大会一覧</h1>
@@ -45,7 +53,12 @@ export default function TournamentsPage() {
         <table className="w-full text-left text-xs md:text-sm">
           <thead className="bg-gray-100">
             <tr>
-              <th className="p-2 md:p-4">日付</th>
+              <th 
+                className="p-2 md:p-4 cursor-pointer hover:bg-gray-200 transition select-none"
+                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+              >
+                日付 {sortOrder === 'desc' ? '▼' : '▲'}
+              </th>
               <th className="hidden md:table-cell p-4">場所</th>
               <th className="p-2 md:p-4">大会名</th>
               <th className="p-2 md:p-4">結果</th>
@@ -53,7 +66,7 @@ export default function TournamentsPage() {
             </tr>
           </thead>
           <tbody>
-            {tournaments.map(t => (
+            {sortedTournaments.map(t => (
               <tr key={t.id} className="border-b hover:bg-gray-50">
                 <td className="p-2 md:p-4 whitespace-nowrap">{t.date}</td>
                 <td className="hidden md:table-cell p-4">{getPlaceName(t.places_id)}</td>
@@ -106,7 +119,7 @@ export default function TournamentsPage() {
               </div>
             </li>
           ))}
-          {records.filter(r => r.tournaments_id == activeTournament?.id).length === 0 && <p className="text-gray-500 text-sm">戦績がありません</p>}
+          {activeTournament && records.filter(r => r.tournaments_id == activeTournament.id).length === 0 && <p className="text-gray-500 text-sm">戦績がありません</p>}
         </ul>
       </Modal>
     </>

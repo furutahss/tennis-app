@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { fetchAPI } from '@/lib/apiClient';
 import { RecordData, Tournament, Opponent, Place } from '@/types';
+import Modal from '@/components/Modal';
 
 export default function AnalyticsPage() {
   const [records, setRecords] = useState<RecordData[]>([]);
@@ -13,6 +14,10 @@ export default function AnalyticsPage() {
   const [filterPlace, setFilterPlace] = useState('');
   const [filterTournament, setFilterTournament] = useState('');
   const [filterOpponent, setFilterOpponent] = useState('');
+
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [activeOpponent, setActiveOpponent] = useState<Opponent | null>(null);
 
   useEffect(() => {
     Promise.all([fetchAPI('records'), fetchAPI('tournaments'), fetchAPI('opponents'), fetchAPI('places')])
@@ -32,6 +37,15 @@ export default function AnalyticsPage() {
     return true;
   });
 
+  // 日付でソート
+  const sortedRecords = [...filteredRecords].sort((a, b) => {
+    const tA = tournaments.find(t => t.id == a.tournaments_id);
+    const tB = tournaments.find(t => t.id == b.tournaments_id);
+    const dateA = tA ? new Date(tA.date).getTime() : 0;
+    const dateB = tB ? new Date(tB.date).getTime() : 0;
+    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+  });
+
   const total = filteredRecords.length;
   const wins = filteredRecords.filter(r => r.result === 'WIN').length;
   const rate = total > 0 ? ((wins / total) * 100).toFixed(1) : '0.0';
@@ -42,6 +56,13 @@ export default function AnalyticsPage() {
     if (!t) return '不明';
     const placeName = getName(places, t.places_id);
     return `${t.date} ${placeName} ${t.name}`;
+  };
+
+  const getScoreText = (r: RecordData) => {
+    const myS = r.is_ret_me ? 'RET' : r.my_score;
+    const opS = r.is_ret_op ? 'RET' : r.op_score;
+    const tb = (r.my_tb_score || r.op_tb_score) ? `(${r.my_tb_score}-${r.op_tb_score})` : '';
+    return `${myS} - ${opS} ${tb}`;
   };
 
   return (
@@ -89,38 +110,74 @@ export default function AnalyticsPage() {
         <table className="w-full text-left border-collapse text-xs md:text-sm">
           <thead>
             <tr className="bg-gray-100">
-              <th className="p-2 md:p-3 border-b">大会/ラウンド</th>
+              <th 
+                className="p-2 md:p-3 border-b cursor-pointer hover:bg-gray-200 transition select-none"
+                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+              >
+                大会/ラウンド {sortOrder === 'desc' ? '▼' : '▲'}
+              </th>
               <th className="p-2 md:p-3 border-b">対戦相手</th>
               <th className="p-2 md:p-3 border-b text-center">スコア</th>
               <th className="hidden md:table-cell p-3 border-b text-center">結果</th>
             </tr>
           </thead>
           <tbody>
-            {filteredRecords.map(r => (
-              <tr key={r.id} className="border-b">
-                <td className="p-2 md:p-3 max-w-[140px] md:max-w-none break-words">
-                  {formatTournament(r.tournaments_id)} <span className="text-gray-500 block md:inline">({r.round})</span>
-                </td>
-                <td className="p-2 md:p-3 break-words">{getName(opponents, r.opponents_id)}</td>
-                <td className="p-2 md:p-3 text-center font-mono">
-                  <div>
-                    {r.is_ret_me ? 'RET' : r.my_score} - {r.is_ret_op ? 'RET' : r.op_score}
-                    {(r.my_tb_score || r.op_tb_score) ? <span className="block md:inline text-[10px] md:text-xs"> ({r.my_tb_score}-{r.op_tb_score})</span> : ''}
-                  </div>
-                  {/* スマホ用 結果バッジ */}
-                  <div className="mt-1 md:hidden">
-                    {r.result === 'WIN' ? <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded">WIN</span> : <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">LOSE</span>}
-                  </div>
-                </td>
-                <td className="hidden md:table-cell p-3 text-center font-bold">
-                  {r.result === 'WIN' ? <span className="text-red-500">WIN</span> : <span className="text-blue-500">LOSE</span>}
-                </td>
-              </tr>
-            ))}
-            {filteredRecords.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-gray-500">該当する戦績がありません</td></tr>}
+            {sortedRecords.map(r => {
+              const op = opponents.find(o => o.id == r.opponents_id);
+              return (
+                <tr key={r.id} className="border-b">
+                  <td className="p-2 md:p-3 max-w-[140px] md:max-w-none break-words">
+                    {formatTournament(r.tournaments_id)} <span className="text-gray-500 block md:inline">({r.round})</span>
+                  </td>
+                  <td className="p-2 md:p-3 break-words">
+                    {op ? (
+                      <button onClick={() => { setActiveOpponent(op); setIsHistoryOpen(true); }} className="text-blue-600 font-bold hover:underline text-left">
+                        {op.name}
+                      </button>
+                    ) : '不明'}
+                  </td>
+                  <td className="p-2 md:p-3 text-center font-mono">
+                    <div>
+                      {r.is_ret_me ? 'RET' : r.my_score} - {r.is_ret_op ? 'RET' : r.op_score}
+                      {(r.my_tb_score || r.op_tb_score) ? <span className="block md:inline text-[10px] md:text-xs"> ({r.my_tb_score}-{r.op_tb_score})</span> : ''}
+                    </div>
+                    <div className="mt-1 md:hidden">
+                      {r.result === 'WIN' ? <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded">WIN</span> : <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">LOSE</span>}
+                    </div>
+                  </td>
+                  <td className="hidden md:table-cell p-3 text-center font-bold">
+                    {r.result === 'WIN' ? <span className="text-red-500">WIN</span> : <span className="text-blue-500">LOSE</span>}
+                  </td>
+                </tr>
+              );
+            })}
+            {sortedRecords.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-gray-500">該当する戦績がありません</td></tr>}
           </tbody>
         </table>
       </div>
+
+      <Modal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} title={`${activeOpponent?.name} との戦績`}>
+        <ul className="space-y-2">
+          {records.filter(r => r.opponents_id == activeOpponent?.id).sort((a, b) => {
+            const tA = tournaments.find(t => t.id == a.tournaments_id);
+            const tB = tournaments.find(t => t.id == b.tournaments_id);
+            return (tB ? new Date(tB.date).getTime() : 0) - (tA ? new Date(tA.date).getTime() : 0);
+          }).map(r => (
+            <li key={r.id} className="p-2 md:p-3 bg-gray-50 border rounded flex flex-row justify-between items-center gap-1.5 md:gap-3 text-xs md:text-sm">
+              <div className="flex-1 min-w-0 flex items-center gap-1 md:gap-2">
+                <span className="font-bold truncate text-xs md:text-sm">{formatTournament(r.tournaments_id)}</span>
+                <span className="text-[10px] md:text-xs text-gray-500 shrink-0">({r.round})</span>
+              </div>
+              <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
+                {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] md:text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded hover:bg-green-200">動画</a>}
+                <span className="font-mono text-xs md:text-base">{getScoreText(r)}</span>
+                <span className={`font-bold w-8 md:w-12 text-center text-[10px] md:text-sm ${r.result === 'WIN' ? 'text-red-500' : 'text-blue-500'}`}>{r.result}</span>
+              </div>
+            </li>
+          ))}
+          {activeOpponent && records.filter(r => r.opponents_id == activeOpponent.id).length === 0 && <p className="text-gray-500 text-sm">戦績がありません</p>}
+        </ul>
+      </Modal>
     </div>
   );
 }
